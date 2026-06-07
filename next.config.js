@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['youtubei.js'],
+    serverComponentsExternalPackages: ['@distube/ytdl-core'],
   },
   images: {
     remotePatterns: [

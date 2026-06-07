@@ -1,9 +1,3 @@
-import { Innertube } from 'youtubei.js';
-
-export async function getInnertube() {
-  return await Innertube.create();
-}
-
 export function extractVideoId(input: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
@@ -18,11 +12,9 @@ export function extractVideoId(input: string): string | null {
     if (match?.[1]) return match[1];
   }
 
-  // Plain video ID (11 chars, alphanumeric + - _)
   if (/^[a-zA-Z0-9_-]{11}$/.test(input.trim())) {
     return input.trim();
   }
 
   return null;
 }
-

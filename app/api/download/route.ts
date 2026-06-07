@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import ytdl from '@distube/ytdl-core';
 import { extractVideoId } from '@/lib/youtube';
+import { createAgent } from '@/lib/ytdl-agent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
   const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    const info = await ytdl.getInfo(videoUrl);
+    const info = await ytdl.getInfo(videoUrl, { agent: createAgent() });
     const format = info.formats.find((f) => f.itag === itagNum);
 
     if (!format) {

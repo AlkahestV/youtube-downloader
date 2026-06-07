@@ -6,15 +6,6 @@ export interface VideoInfo {
   duration: number;
   thumbnail: string | null;
   author: string;
-  formats: VideoFormat[];
-}
-
-export interface VideoFormat {
-  itag: number;
-  quality: string;
-  mimeType: string;
-  container: 'mp4' | 'webm' | 'm4a';
-  type: 'video+audio' | 'audio';
 }
 
 export default function VideoCard({ info }: { info: VideoInfo }) {

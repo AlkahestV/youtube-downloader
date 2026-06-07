@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { VideoInfo, VideoFormat } from './video-card';
+import type { VideoInfo } from './video-card';
 
 interface Props {
   info: VideoInfo;
@@ -51,19 +51,14 @@ function DownloadRow({
 }
 
 export default function DownloadOptions({ info, url }: Props) {
-  const [activeItag, setActiveItag] = useState<number | null>(null);
+  const [activeType, setActiveType] = useState<string | null>(null);
   const [mp3Status, setMp3Status] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const videoFormats = info.formats
-    .filter((f) => f.type === 'video+audio')
-    .sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
+  const isBusy = activeType !== null || mp3Status !== null;
 
-  const audioFormat = info.formats.find((f) => f.type === 'audio');
-  const isBusy = activeItag !== null || mp3Status !== null;
-
-  function buildDownloadUrl(format: VideoFormat) {
-    const p = new URLSearchParams({ url, itag: String(format.itag), title: info.title });
+  function buildDownloadUrl(type: 'video' | 'audio') {
+    const p = new URLSearchParams({ url, type, title: info.title });
     return `/api/download?${p}`;
   }
 
@@ -76,24 +71,24 @@ export default function DownloadOptions({ info, url }: Props) {
     document.body.removeChild(a);
   }
 
-  function handleVideoDownload(format: VideoFormat) {
+  function handleVideoDownload() {
     if (isBusy) return;
     setError(null);
-    setActiveItag(format.itag);
-    triggerDownload(buildDownloadUrl(format), `${info.title}.${format.container}`);
-    setTimeout(() => setActiveItag(null), 3000);
+    setActiveType('video');
+    triggerDownload(buildDownloadUrl('video'), `${info.title}.mp4`);
+    setTimeout(() => setActiveType(null), 3000);
   }
 
   function handleAudioDownload() {
-    if (!audioFormat || isBusy) return;
+    if (isBusy) return;
     setError(null);
-    setActiveItag(audioFormat.itag);
-    triggerDownload(buildDownloadUrl(audioFormat), `${info.title}.m4a`);
-    setTimeout(() => setActiveItag(null), 3000);
+    setActiveType('audio');
+    triggerDownload(buildDownloadUrl('audio'), `${info.title}.m4a`);
+    setTimeout(() => setActiveType(null), 3000);
   }
 
   async function handleMp3Download() {
-    if (!audioFormat || isBusy) return;
+    if (isBusy) return;
     setError(null);
     setMp3Status('Loading converter...');
 
@@ -103,7 +98,6 @@ export default function DownloadOptions({ info, url }: Props) {
 
       const ffmpeg = new FFmpeg();
 
-      // Single-threaded core — no SharedArrayBuffer / COOP headers required
       setMp3Status('Loading FFmpeg WASM (~20 MB first run)...');
       const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
       await ffmpeg.load({
@@ -112,7 +106,7 @@ export default function DownloadOptions({ info, url }: Props) {
       });
 
       setMp3Status('Downloading audio...');
-      const audioResponse = await fetch(buildDownloadUrl(audioFormat));
+      const audioResponse = await fetch(buildDownloadUrl('audio'));
       if (!audioResponse.ok) throw new Error(`HTTP ${audioResponse.status}`);
 
       setMp3Status('Converting to MP3...');
@@ -147,42 +141,32 @@ export default function DownloadOptions({ info, url }: Props) {
         Download options
       </p>
 
-      {videoFormats.length === 0 && !audioFormat && (
-        <p className="text-zinc-600 text-sm text-center py-4">No downloadable formats found.</p>
-      )}
+      <DownloadRow
+        icon="🎬"
+        label="Video MP4"
+        sublabel="Best quality up to 720p"
+        status={activeType === 'video' ? 'Starting download...' : null}
+        onClick={handleVideoDownload}
+        disabled={isBusy}
+      />
 
-      {videoFormats.map((fmt) => (
-        <DownloadRow
-          key={fmt.itag}
-          icon={parseInt(fmt.quality) >= 720 ? '🎬' : '📹'}
-          label={`${fmt.quality} ${fmt.container.toUpperCase()}`}
-          sublabel="Video + Audio"
-          status={activeItag === fmt.itag ? 'Starting download...' : null}
-          onClick={() => handleVideoDownload(fmt)}
-          disabled={isBusy}
-        />
-      ))}
+      <DownloadRow
+        icon="🎵"
+        label="Audio (M4A)"
+        sublabel="AAC audio, no conversion"
+        status={activeType === 'audio' ? 'Starting download...' : null}
+        onClick={handleAudioDownload}
+        disabled={isBusy}
+      />
 
-      {audioFormat && (
-        <>
-          <DownloadRow
-            icon="🎵"
-            label="Audio (M4A)"
-            sublabel="AAC audio, no conversion"
-            status={activeItag === audioFormat.itag ? 'Starting download...' : null}
-            onClick={handleAudioDownload}
-            disabled={isBusy}
-          />
-          <DownloadRow
-            icon="🎶"
-            label="Audio (MP3)"
-            sublabel="Converted in your browser"
-            status={mp3Status}
-            onClick={handleMp3Download}
-            disabled={isBusy}
-          />
-        </>
-      )}
+      <DownloadRow
+        icon="🎶"
+        label="Audio (MP3)"
+        sublabel="Converted in your browser"
+        status={mp3Status}
+        onClick={handleMp3Download}
+        disabled={isBusy}
+      />
 
       {error && (
         <div className="bg-red-950/50 border border-red-900 rounded-xl px-4 py-3 text-red-400 text-xs">
